@@ -151,7 +151,15 @@ if ps -p $PID > /dev/null 2>&1; then
     echo -e "  ${GREEN}Log Parser is running${NC}"
     echo "========================================"
     echo ""
-    echo "  URL:      http://localhost:5000"
+    echo "  Access URLs:"
+    echo "    http://localhost:5000"
+    echo "    http://127.0.0.1:5000"
+    # Get local IP address
+    LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+    if [ -n "$LOCAL_IP" ]; then
+        echo "    http://$LOCAL_IP:5000 (network)"
+    fi
+    echo ""
     echo "  PID:      $PID"
     echo "  Log file: $SCRIPT_DIR/logparser.log"
     echo ""

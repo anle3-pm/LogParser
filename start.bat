@@ -129,7 +129,18 @@ if defined PID (
     echo   Log Parser is running
     echo ========================================
     echo.
-    echo   URL:      http://localhost:5000
+    echo   Access URLs:
+    echo     http://localhost:5000
+    echo     http://127.0.0.1:5000
+    REM Get local IP
+    for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do (
+        for /f "tokens=1" %%b in ("%%a") do (
+            echo     http://%%b:5000 (network^)
+            goto :done_ip
+        )
+    )
+    :done_ip
+    echo.
     echo   PID:      !PID!
     echo   Log file: %SCRIPT_DIR%logparser.log
     echo.
@@ -147,7 +158,10 @@ if defined PID (
     echo   Log Parser is running
     echo ========================================
     echo.
-    echo   URL:      http://localhost:5000
+    echo   Access URLs:
+    echo     http://localhost:5000
+    echo     http://127.0.0.1:5000
+    echo.
     echo   Log file: %SCRIPT_DIR%logparser.log
     echo.
     echo   To stop:  stop.bat or close this window
