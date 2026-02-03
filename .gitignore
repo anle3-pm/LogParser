@@ -1,6 +1,10 @@
 # Uploaded log files
 uploads/
 
+# Service files
+.logparser.pid
+logparser.log
+
 # Python
 __pycache__/
 *.py[cod]

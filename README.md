@@ -15,6 +15,32 @@ A log viewer for parsing, filtering, and searching through application logs expo
 
 ## Quick Start (Web App)
 
+### Using Start/Stop Scripts (Recommended)
+
+The easiest way to run Log Parser. The scripts automatically check for prerequisites and install them.
+
+**macOS/Linux:**
+```bash
+./start.sh    # Start the service
+./stop.sh     # Stop the service
+```
+
+**Windows:**
+```batch
+start.bat     # Start the service
+stop.bat      # Stop the service
+```
+
+The start script will:
+- Check if Python 3 is installed
+- Check if pip is available
+- Create a virtual environment (if needed)
+- Install all dependencies
+- Start the service in the background
+- Open your browser automatically
+
+### Manual Setup
+
 1. Create a virtual environment (recommended):
    ```bash
    python -m venv venv
