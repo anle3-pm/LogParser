@@ -12,6 +12,11 @@ ENV/
 env/
 .venv/
 
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
 # IDE
 .idea/
 .vscode/
