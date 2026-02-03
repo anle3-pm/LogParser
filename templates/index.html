@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Parser</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #06b6d4;
+            --border: #475569;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .stats-badge {
+            background: var(--bg-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stats-badge span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            text-align: center;
+            border: 2px dashed var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: var(--accent);
+        }
+
+        .upload-section.dragover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-section h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .upload-section p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .upload-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* Filters */
+        .filters-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .filters-section.active {
+            display: block;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .filters-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .clear-filters {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-filters:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .filter-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-group {
+            grid-column: 1 / -1;
+        }
+
+        .search-group input {
+            width: 100%;
+        }
+
+        /* Logs Table */
+        .logs-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .logs-section.active {
+            display: block;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logs-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .logs-table-container {
+            overflow-x: auto;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .logs-table th {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+
+        .logs-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .logs-table tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .logs-table tr {
+            cursor: pointer;
+        }
+
+        /* Log Level Badges */
+        .level-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .level-info {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--info);
+        }
+
+        .level-warning, .level-warn {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .level-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+        }
+
+        .level-debug {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .level-unknown {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted);
+        }
+
+        /* Message Cell */
+        .message-cell {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .timestamp-cell {
+            white-space: nowrap;
+            color: var(--text-secondary);
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+
+        .pod-cell {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .trace-cell {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .pagination button {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-numbers {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pagination .page-num {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pagination .page-num.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .detail-item {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-item span {
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .raw-log {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        .raw-log-header {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        /* Per Page Select */
+        .per-page-select {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .per-page-select label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .per-page-select select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .logs-table th:nth-child(n+5),
+            .logs-table td:nth-child(n+5) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Log Parser</h1>
+            <div class="stats-badge" id="stats-badge" style="display: none;">
+                <span id="total-count">0</span> logs loaded | Showing <span id="filtered-count">0</span>
+            </div>
+        </header>
+
+        <section class="upload-section" id="upload-section">
+            <h2>Upload Log File</h2>
+            <p>Drag and drop a CSV log file here, or click to browse</p>
+            <input type="file" id="file-input" accept=".csv">
+            <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                Choose File
+            </button>
+        </section>
+
+        <section class="filters-section" id="filters-section">
+            <div class="filters-header">
+                <h3>Filters</h3>
+                <button class="clear-filters" onclick="clearFilters()">Clear All</button>
+            </div>
+            <div class="filters-grid">
+                <div class="filter-group search-group">
+                    <label>Search</label>
+                    <input type="text" id="search-input" placeholder="Search in messages, trace IDs, pods, caller...">
+                </div>
+                <div class="filter-group">
+                    <label>Log Level</label>
+                    <select id="level-filter">
+                        <option value="all">All Levels</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Pod Name</label>
+                    <select id="pod-filter">
+                        <option value="all">All Pods</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Namespace</label>
+                    <select id="namespace-filter">
+                        <option value="all">All Namespaces</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>External ID</label>
+                    <select id="external-id-filter">
+                        <option value="all">All External IDs</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading logs...</p>
+        </div>
+
+        <section class="logs-section" id="logs-section">
+            <div class="logs-header">
+                <h3>Log Entries</h3>
+                <div class="per-page-select">
+                    <label>Show:</label>
+                    <select id="per-page-select">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+            </div>
+            <div class="logs-table-container">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Timestamp</th>
+                            <th>Message</th>
+                            <th>Pod</th>
+                            <th>Trace ID</th>
+                            <th>Caller</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-body">
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <h3>No logs found</h3>
+                <p>Try adjusting your filters or search query</p>
+            </div>
+            <div class="pagination" id="pagination">
+                <button id="prev-btn" onclick="changePage(-1)">Previous</button>
+                <div class="page-numbers" id="page-numbers"></div>
+                <button id="next-btn" onclick="changePage(1)">Next</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Log Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentPage = 1;
+        let totalPages = 1;
+        let perPage = 50;
+        let totalLogs = 0;
+        let filterTimeout = null;
+
+        // DOM Elements
+        const uploadSection = document.getElementById('upload-section');
+        const filtersSection = document.getElementById('filters-section');
+        const logsSection = document.getElementById('logs-section');
+        const loading = document.getElementById('loading');
+        const statsBadge = document.getElementById('stats-badge');
+        const logsBody = document.getElementById('logs-body');
+        const emptyState = document.getElementById('empty-state');
+        const pagination = document.getElementById('pagination');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalBody = document.getElementById('modal-body');
+
+        // File Upload
+        const fileInput = document.getElementById('file-input');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.csv')) {
+                uploadFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+
+        async function uploadFile(file) {
+            loading.classList.add('active');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    totalLogs = data.total_logs;
+                    document.getElementById('total-count').textContent = totalLogs;
+                    
+                    // Populate filters
+                    populateFilter('level-filter', data.filters.levels);
+                    populateFilter('pod-filter', data.filters.pod_names);
+                    populateFilter('namespace-filter', data.filters.namespaces);
+                    populateFilter('external-id-filter', data.filters.external_ids);
+
+                    // Show sections
+                    statsBadge.style.display = 'block';
+                    filtersSection.classList.add('active');
+                    logsSection.classList.add('active');
+                    uploadSection.style.display = 'none';
+
+                    // Load logs
+                    loadLogs();
+                } else {
+                    alert(data.error || 'Error uploading file');
+                }
+            } catch (error) {
+                alert('Error uploading file: ' + error.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function populateFilter(elementId, options) {
+            const select = document.getElementById(elementId);
+            const firstOption = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                select.appendChild(opt);
+            });
+        }
+
+        // Load Logs
+        async function loadLogs() {
+            loading.classList.add('active');
+            logsBody.innerHTML = '';
+            emptyState.style.display = 'none';
+
+            const params = new URLSearchParams({
+                page: currentPage,
+                per_page: perPage,
+                search: document.getElementById('search-input').value,
+                level: document.getElementById('level-filter').value,
+                pod_name: document.getElementById('pod-filter').value,
+                namespace: document.getElementById('namespace-filter').value,
+                external_id: document.getElementById('external-id-filter').value
+            });
+
+            try {
+                const response = await fetch('/logs?' + params.toString());
+                const data = await response.json();
+
+                document.getElementById('filtered-count').textContent = data.total;
+                totalPages = data.total_pages;
+
+                if (data.logs.length === 0) {
+                    emptyState.style.display = 'block';
+                    pagination.style.display = 'none';
+                } else {
+                    renderLogs(data.logs);
+                    renderPagination();
+                    pagination.style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function renderLogs(logs) {
+            logsBody.innerHTML = logs.map(log => `
+                <tr onclick="showLogDetail('${log.id}')">
+                    <td><span class="level-badge level-${log.level}">${log.level}</span></td>
+                    <td class="timestamp-cell">${formatTimestamp(log.log_time || log.timestamp)}</td>
+                    <td class="message-cell" title="${escapeHtml(log.message)}">${escapeHtml(log.message)}</td>
+                    <td class="pod-cell">${formatPodName(log.pod_name)}</td>
+                    <td class="trace-cell">${log.trace_id ? log.trace_id.slice(0, 8) + '...' : '-'}</td>
+                    <td class="trace-cell">${formatCaller(log.caller)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function formatTimestamp(ts) {
+            if (!ts) return '-';
+            try {
+                const date = new Date(ts);
+                return date.toLocaleString();
+            } catch {
+                return ts;
+            }
+        }
+
+        function formatPodName(name) {
+            if (!name) return '-';
+            // Shorten pod name for display
+            const parts = name.split('-');
+            if (parts.length > 2) {
+                return parts.slice(-2).join('-');
+            }
+            return name;
+        }
+
+        function formatCaller(caller) {
+            if (!caller) return '-';
+            // Extract just the file and line number
+            const match = caller.match(/([^\/]+:\d+)$/);
+            return match ? match[1] : caller;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Pagination
+        function renderPagination() {
+            const pageNumbers = document.getElementById('page-numbers');
+            let html = '';
+
+            const start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, currentPage + 2);
+
+            if (start > 1) {
+                html += `<button class="page-num" onclick="goToPage(1)">1</button>`;
+                if (start > 2) html += `<span style="padding: 0 8px;">...</span>`;
+            }
+
+            for (let i = start; i <= end; i++) {
+                html += `<button class="page-num ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            if (end < totalPages) {
+                if (end < totalPages - 1) html += `<span style="padding: 0 8px;">...</span>`;
+                html += `<button class="page-num" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            pageNumbers.innerHTML = html;
+
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === totalPages;
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            loadLogs();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            loadLogs();
+        }
+
+        // Filters
+        document.getElementById('search-input').addEventListener('input', debounceFilter);
+        document.getElementById('level-filter').addEventListener('change', applyFilters);
+        document.getElementById('pod-filter').addEventListener('change', applyFilters);
+        document.getElementById('namespace-filter').addEventListener('change', applyFilters);
+        document.getElementById('external-id-filter').addEventListener('change', applyFilters);
+        document.getElementById('per-page-select').addEventListener('change', (e) => {
+            perPage = parseInt(e.target.value);
+            currentPage = 1;
+            loadLogs();
+        });
+
+        function debounceFilter() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyFilters, 300);
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            loadLogs();
+        }
+
+        function clearFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('level-filter').value = 'all';
+            document.getElementById('pod-filter').value = 'all';
+            document.getElementById('namespace-filter').value = 'all';
+            document.getElementById('external-id-filter').value = 'all';
+            applyFilters();
+        }
+
+        // Modal
+        async function showLogDetail(logId) {
+            try {
+                const response = await fetch(`/log/${logId}`);
+                const log = await response.json();
+
+                modalBody.innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Level</label>
+                            <span><span class="level-badge level-${log.level}">${log.level}</span></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Timestamp</label>
+                            <span>${log.log_time || log.timestamp}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Trace ID</label>
+                            <span>${log.trace_id || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>External ID</label>
+                            <span>${log.external_id || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Pod Name</label>
+                            <span>${log.pod_name || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Namespace</label>
+                            <span>${log.namespace || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Container</label>
+                            <span>${log.container_name || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Host</label>
+                            <span>${log.host || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Image Tag</label>
+                            <span>${log.image_tag || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Upstream System</label>
+                            <span>${log.upstream_system || '-'}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <label>Caller</label>
+                            <span>${log.caller || '-'}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <label>Message</label>
+                            <span>${escapeHtml(log.message) || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="raw-log-header">Raw Log</div>
+                    <pre class="raw-log">${escapeHtml(log.raw_log)}</pre>
+                `;
+
+                modalOverlay.classList.add('active');
+            } catch (error) {
+                console.error('Error loading log detail:', error);
+            }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
