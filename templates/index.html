@@ -69,6 +69,12 @@
             border-radius: 4px;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .stats-badge {
             background: var(--bg-secondary);
             padding: 8px 16px;
@@ -80,6 +86,23 @@
         .stats-badge span {
             color: var(--accent);
             font-weight: 600;
+        }
+
+        .new-file-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .new-file-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         /* Upload Section */
@@ -273,6 +296,34 @@
             white-space: nowrap;
             position: sticky;
             top: 0;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .logs-table th:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .logs-table th.sorted {
+            color: var(--accent);
+        }
+
+        .logs-table th .sort-indicator {
+            display: inline-block;
+            margin-left: 6px;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+
+        .logs-table th:hover .sort-indicator,
+        .logs-table th.sorted .sort-indicator {
+            opacity: 1;
+        }
+
+        .logs-table th.sorted .sort-indicator {
+            color: var(--accent);
         }
 
         .logs-table td {
@@ -581,12 +632,160 @@
             font-size: 14px;
         }
 
+        /* Multi-select Dropdown */
+        .multi-select {
+            position: relative;
+        }
+
+        .multi-select-trigger {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            transition: border-color 0.2s;
+            min-height: 42px;
+        }
+
+        .multi-select-trigger:hover,
+        .multi-select.open .multi-select-trigger {
+            border-color: var(--accent);
+        }
+
+        .multi-select-trigger .selected-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .multi-select-trigger .arrow {
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .multi-select.open .multi-select-trigger .arrow {
+            transform: rotate(180deg);
+        }
+
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            z-index: 100;
+            display: none;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .multi-select.open .multi-select-dropdown {
+            display: block;
+        }
+
+        .multi-select-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .multi-select-option:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .multi-select-option.selected {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .multi-select-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .multi-select-option label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: none;
+            letter-spacing: normal;
+            color: var(--text-primary);
+        }
+
+        .multi-select-option .level-badge {
+            font-size: 10px;
+        }
+
+        .multi-select-actions {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .multi-select-actions button {
+            flex: 1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .multi-select-actions .select-all-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .multi-select-actions .select-all-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .multi-select-actions .clear-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .multi-select-actions .clear-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
                 gap: 12px;
                 align-items: flex-start;
+            }
+
+            .header-right {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .new-file-btn {
+                width: 100%;
+                text-align: center;
             }
 
             .filters-grid {
@@ -608,8 +807,13 @@
     <div class="container">
         <header class="header">
             <h1>Log Parser</h1>
-            <div class="stats-badge" id="stats-badge" style="display: none;">
-                <span id="total-count">0</span> logs loaded | Showing <span id="filtered-count">0</span>
+            <div class="header-right">
+                <div class="stats-badge" id="stats-badge" style="display: none;">
+                    <span id="total-count">0</span> logs loaded | Showing <span id="filtered-count">0</span>
+                </div>
+                <button class="new-file-btn" id="new-file-btn" style="display: none;" onclick="showUploadSection()">
+                    Upload New File
+                </button>
             </div>
         </header>
 
@@ -634,9 +838,21 @@
                 </div>
                 <div class="filter-group">
                     <label>Log Level</label>
-                    <select id="level-filter">
-                        <option value="all">All Levels</option>
-                    </select>
+                    <div class="multi-select" id="level-multi-select">
+                        <div class="multi-select-trigger" onclick="toggleMultiSelect('level-multi-select')">
+                            <span class="selected-text">All Levels</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="multi-select-dropdown">
+                            <div class="multi-select-options" id="level-options">
+                                <!-- Options populated by JS -->
+                            </div>
+                            <div class="multi-select-actions">
+                                <button class="select-all-btn" onclick="selectAllLevels(event)">Select All</button>
+                                <button class="clear-btn" onclick="clearLevelSelection(event)">Clear</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="filter-group">
                     <label>Pod Name</label>
@@ -681,12 +897,24 @@
                 <table class="logs-table">
                     <thead>
                         <tr>
-                            <th>Level</th>
-                            <th>Timestamp</th>
-                            <th>Message</th>
-                            <th>Pod</th>
-                            <th>Trace ID</th>
-                            <th>Caller</th>
+                            <th data-sort="level" onclick="toggleSort('level')">
+                                Level <span class="sort-indicator">↕</span>
+                            </th>
+                            <th data-sort="timestamp" onclick="toggleSort('timestamp')" class="sorted">
+                                Timestamp <span class="sort-indicator">↓</span>
+                            </th>
+                            <th data-sort="message" onclick="toggleSort('message')">
+                                Message <span class="sort-indicator">↕</span>
+                            </th>
+                            <th data-sort="pod" onclick="toggleSort('pod')">
+                                Pod <span class="sort-indicator">↕</span>
+                            </th>
+                            <th data-sort="trace_id" onclick="toggleSort('trace_id')">
+                                Trace ID <span class="sort-indicator">↕</span>
+                            </th>
+                            <th data-sort="caller" onclick="toggleSort('caller')">
+                                Caller <span class="sort-indicator">↕</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="logs-body">
@@ -724,6 +952,10 @@
         let perPage = 50;
         let totalLogs = 0;
         let filterTimeout = null;
+        let selectedLevels = []; // Empty means "all"
+        let availableLevels = [];
+        let sortBy = 'timestamp';
+        let sortOrder = 'desc';
 
         // DOM Elements
         const uploadSection = document.getElementById('upload-section');
@@ -765,6 +997,25 @@
             }
         });
 
+        function showUploadSection() {
+            // Reset state
+            selectedLevels = [];
+            availableLevels = [];
+            sortBy = 'timestamp';
+            sortOrder = 'desc';
+            currentPage = 1;
+            
+            // Show upload section, hide others
+            uploadSection.style.display = 'block';
+            filtersSection.classList.remove('active');
+            logsSection.classList.remove('active');
+            statsBadge.style.display = 'none';
+            document.getElementById('new-file-btn').style.display = 'none';
+            
+            // Clear file input so the same file can be re-selected
+            fileInput.value = '';
+        }
+
         async function uploadFile(file) {
             loading.classList.add('active');
             
@@ -784,13 +1035,15 @@
                     document.getElementById('total-count').textContent = totalLogs;
                     
                     // Populate filters
-                    populateFilter('level-filter', data.filters.levels);
+                    availableLevels = data.filters.levels;
+                    populateLevelFilter(data.filters.levels);
                     populateFilter('pod-filter', data.filters.pod_names);
                     populateFilter('namespace-filter', data.filters.namespaces);
                     populateFilter('external-id-filter', data.filters.external_ids);
 
                     // Show sections
                     statsBadge.style.display = 'block';
+                    document.getElementById('new-file-btn').style.display = 'block';
                     filtersSection.classList.add('active');
                     logsSection.classList.add('active');
                     uploadSection.style.display = 'none';
@@ -821,20 +1074,135 @@
             });
         }
 
+        // Multi-select for Log Levels
+        function populateLevelFilter(levels) {
+            const container = document.getElementById('level-options');
+            container.innerHTML = levels.map(level => `
+                <div class="multi-select-option" onclick="toggleLevelOption('${level}', event)">
+                    <input type="checkbox" id="level-${level}" value="${level}" onchange="onLevelCheckboxChange('${level}')">
+                    <label for="level-${level}">
+                        <span class="level-badge level-${level}">${level}</span>
+                    </label>
+                </div>
+            `).join('');
+            updateLevelDisplay();
+        }
+
+        function toggleMultiSelect(id) {
+            const element = document.getElementById(id);
+            const wasOpen = element.classList.contains('open');
+            
+            // Close all other multi-selects
+            document.querySelectorAll('.multi-select.open').forEach(el => {
+                el.classList.remove('open');
+            });
+            
+            if (!wasOpen) {
+                element.classList.add('open');
+            }
+        }
+
+        function toggleLevelOption(level, event) {
+            if (event.target.tagName === 'INPUT') return; // Let checkbox handle itself
+            
+            const checkbox = document.getElementById(`level-${level}`);
+            checkbox.checked = !checkbox.checked;
+            onLevelCheckboxChange(level);
+        }
+
+        function onLevelCheckboxChange(level) {
+            const checkbox = document.getElementById(`level-${level}`);
+            
+            if (checkbox.checked) {
+                if (!selectedLevels.includes(level)) {
+                    selectedLevels.push(level);
+                }
+            } else {
+                selectedLevels = selectedLevels.filter(l => l !== level);
+            }
+            
+            updateLevelDisplay();
+            applyFilters();
+        }
+
+        function updateLevelDisplay() {
+            const trigger = document.querySelector('#level-multi-select .selected-text');
+            const options = document.querySelectorAll('#level-options .multi-select-option');
+            
+            // Update option styling
+            options.forEach(opt => {
+                const checkbox = opt.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+            
+            // Update trigger text
+            if (selectedLevels.length === 0) {
+                trigger.textContent = 'All Levels';
+            } else if (selectedLevels.length === 1) {
+                trigger.textContent = selectedLevels[0];
+            } else if (selectedLevels.length === availableLevels.length) {
+                trigger.textContent = 'All Levels';
+            } else {
+                trigger.textContent = `${selectedLevels.length} levels selected`;
+            }
+        }
+
+        function selectAllLevels(event) {
+            event.stopPropagation();
+            selectedLevels = [...availableLevels];
+            availableLevels.forEach(level => {
+                const checkbox = document.getElementById(`level-${level}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            updateLevelDisplay();
+            applyFilters();
+        }
+
+        function clearLevelSelection(event) {
+            event.stopPropagation();
+            selectedLevels = [];
+            availableLevels.forEach(level => {
+                const checkbox = document.getElementById(`level-${level}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            updateLevelDisplay();
+            applyFilters();
+        }
+
+        // Close multi-select when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.multi-select')) {
+                document.querySelectorAll('.multi-select.open').forEach(el => {
+                    el.classList.remove('open');
+                });
+            }
+        });
+
         // Load Logs
         async function loadLogs() {
             loading.classList.add('active');
             logsBody.innerHTML = '';
             emptyState.style.display = 'none';
 
+            // Determine levels to send
+            const levelsParam = selectedLevels.length === 0 || selectedLevels.length === availableLevels.length
+                ? 'all'
+                : selectedLevels.join(',');
+            
             const params = new URLSearchParams({
                 page: currentPage,
                 per_page: perPage,
                 search: document.getElementById('search-input').value,
-                level: document.getElementById('level-filter').value,
+                levels: levelsParam,
                 pod_name: document.getElementById('pod-filter').value,
                 namespace: document.getElementById('namespace-filter').value,
-                external_id: document.getElementById('external-id-filter').value
+                external_id: document.getElementById('external-id-filter').value,
+                sort_by: sortBy,
+                sort_order: sortOrder
             });
 
             try {
@@ -850,6 +1218,7 @@
                 } else {
                     renderLogs(data.logs);
                     renderPagination();
+                    updateSortIndicators();
                     pagination.style.display = 'flex';
                 }
             } catch (error) {
@@ -944,9 +1313,44 @@
             loadLogs();
         }
 
+        // Sorting
+        function toggleSort(column) {
+            if (sortBy === column) {
+                // Toggle order if same column
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, default to descending for timestamp, ascending for others
+                sortBy = column;
+                sortOrder = column === 'timestamp' ? 'desc' : 'asc';
+            }
+            updateSortIndicators();
+            currentPage = 1; // Reset to first page when sorting
+            loadLogs();
+        }
+
+        function updateSortIndicators() {
+            // Remove sorted class from all headers
+            document.querySelectorAll('.logs-table th').forEach(th => {
+                th.classList.remove('sorted');
+                const indicator = th.querySelector('.sort-indicator');
+                if (indicator) {
+                    indicator.textContent = '↕';
+                }
+            });
+
+            // Add sorted class to current column
+            const sortedHeader = document.querySelector(`.logs-table th[data-sort="${sortBy}"]`);
+            if (sortedHeader) {
+                sortedHeader.classList.add('sorted');
+                const indicator = sortedHeader.querySelector('.sort-indicator');
+                if (indicator) {
+                    indicator.textContent = sortOrder === 'asc' ? '↑' : '↓';
+                }
+            }
+        }
+
         // Filters
         document.getElementById('search-input').addEventListener('input', debounceFilter);
-        document.getElementById('level-filter').addEventListener('change', applyFilters);
         document.getElementById('pod-filter').addEventListener('change', applyFilters);
         document.getElementById('namespace-filter').addEventListener('change', applyFilters);
         document.getElementById('external-id-filter').addEventListener('change', applyFilters);
@@ -968,10 +1372,21 @@
 
         function clearFilters() {
             document.getElementById('search-input').value = '';
-            document.getElementById('level-filter').value = 'all';
+            // Clear level multi-select
+            selectedLevels = [];
+            availableLevels.forEach(level => {
+                const checkbox = document.getElementById(`level-${level}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            updateLevelDisplay();
+            // Clear other filters
             document.getElementById('pod-filter').value = 'all';
             document.getElementById('namespace-filter').value = 'all';
             document.getElementById('external-id-filter').value = 'all';
+            // Reset sort to default
+            sortBy = 'timestamp';
+            sortOrder = 'desc';
+            updateSortIndicators();
             applyFilters();
         }
 

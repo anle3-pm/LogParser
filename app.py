@@ -107,9 +107,9 @@ def filter_logs(logs, filters):
             or search_term in log.get('raw_log', '').lower()
         ]
     
-    # Filter by log level
-    if filters.get('level') and filters['level'] != 'all':
-        filtered = [log for log in filtered if log.get('level') == filters['level']]
+    # Filter by log level (supports multiple levels)
+    if filters.get('levels') and filters['levels'] != ['all'] and 'all' not in filters['levels']:
+        filtered = [log for log in filtered if log.get('level') in filters['levels']]
     
     # Filter by pod name
     if filters.get('pod_name') and filters['pod_name'] != 'all':
@@ -193,9 +193,13 @@ def get_logs():
     global parsed_logs
     
     # Get filter parameters
+    # Parse levels as a list (comma-separated)
+    levels_param = request.args.get('levels', 'all')
+    levels_list = [l.strip() for l in levels_param.split(',') if l.strip()]
+    
     filters = {
         'search': request.args.get('search', ''),
-        'level': request.args.get('level', 'all'),
+        'levels': levels_list if levels_list else ['all'],
         'pod_name': request.args.get('pod_name', 'all'),
         'namespace': request.args.get('namespace', 'all'),
         'external_id': request.args.get('external_id', 'all'),
@@ -207,11 +211,35 @@ def get_logs():
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
     
+    # Sort parameters
+    sort_by = request.args.get('sort_by', 'timestamp')
+    sort_order = request.args.get('sort_order', 'desc')
+    
     # Filter logs
     filtered = filter_logs(parsed_logs, filters)
     
-    # Sort by timestamp (newest first)
-    filtered.sort(key=lambda x: x.get('log_time', x.get('timestamp', '')), reverse=True)
+    # Sort logs
+    sort_key_map = {
+        'level': 'level',
+        'timestamp': 'log_time',
+        'message': 'message',
+        'pod': 'pod_name',
+        'trace_id': 'trace_id',
+        'caller': 'caller'
+    }
+    
+    sort_field = sort_key_map.get(sort_by, 'log_time')
+    reverse = sort_order == 'desc'
+    
+    # Handle sorting with fallback for empty values
+    def get_sort_key(log):
+        value = log.get(sort_field, '')
+        if sort_field == 'log_time':
+            # Fallback to timestamp if log_time is empty
+            value = value or log.get('timestamp', '')
+        return value.lower() if isinstance(value, str) else value
+    
+    filtered.sort(key=get_sort_key, reverse=reverse)
     
     # Paginate
     total = len(filtered)
