@@ -341,6 +341,10 @@
             cursor: pointer;
         }
 
+        .logs-table tr.active-row {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
         /* Log Level Badges */
         .level-badge {
             display: inline-block;
@@ -486,13 +490,50 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 24px;
+            padding: 16px 24px;
             border-bottom: 1px solid var(--border);
+            gap: 16px;
         }
 
         .modal-header h3 {
             font-size: 18px;
             font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+
+        .modal-header .log-position {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .modal-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         .modal-close {
@@ -937,8 +978,16 @@
     <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <h3>Log Details</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button class="nav-btn" id="prev-log-btn" onclick="navigateLog(-1)" title="Previous log (↑)">
+                    ↑ Prev
+                </button>
+                <h3>Log Details <span class="log-position" id="log-position"></span></h3>
+                <div class="modal-header-right">
+                    <button class="nav-btn" id="next-log-btn" onclick="navigateLog(1)" title="Next log (↓)">
+                        Next ↓
+                    </button>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
             </div>
             <div class="modal-body" id="modal-body">
             </div>
@@ -956,6 +1005,8 @@
         let availableLevels = [];
         let sortBy = 'timestamp';
         let sortOrder = 'desc';
+        let currentLogs = []; // Store currently displayed logs
+        let currentLogIndex = -1; // Index in currentLogs array
 
         // DOM Elements
         const uploadSection = document.getElementById('upload-section');
@@ -1215,7 +1266,9 @@
                 if (data.logs.length === 0) {
                     emptyState.style.display = 'block';
                     pagination.style.display = 'none';
+                    currentLogs = [];
                 } else {
+                    currentLogs = data.logs; // Store for navigation
                     renderLogs(data.logs);
                     renderPagination();
                     updateSortIndicators();
@@ -1229,8 +1282,8 @@
         }
 
         function renderLogs(logs) {
-            logsBody.innerHTML = logs.map(log => `
-                <tr onclick="showLogDetail('${log.id}')">
+            logsBody.innerHTML = logs.map((log, index) => `
+                <tr onclick="showLogDetailByIndex(${index})" data-log-index="${index}">
                     <td><span class="level-badge level-${log.level}">${log.level}</span></td>
                     <td class="timestamp-cell">${formatTimestamp(log.log_time || log.timestamp)}</td>
                     <td class="message-cell" title="${escapeHtml(log.message)}">${escapeHtml(log.message)}</td>
@@ -1391,82 +1444,130 @@
         }
 
         // Modal
+        function showLogDetailByIndex(index) {
+            currentLogIndex = index;
+            const log = currentLogs[index];
+            if (log) {
+                showLogDetailContent(log);
+            }
+        }
+
         async function showLogDetail(logId) {
+            // Find index in current logs
+            currentLogIndex = currentLogs.findIndex(l => l.id === logId);
+            
             try {
                 const response = await fetch(`/log/${logId}`);
                 const log = await response.json();
-
-                modalBody.innerHTML = `
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Level</label>
-                            <span><span class="level-badge level-${log.level}">${log.level}</span></span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Timestamp</label>
-                            <span>${log.log_time || log.timestamp}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Trace ID</label>
-                            <span>${log.trace_id || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>External ID</label>
-                            <span>${log.external_id || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Pod Name</label>
-                            <span>${log.pod_name || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Namespace</label>
-                            <span>${log.namespace || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Container</label>
-                            <span>${log.container_name || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Host</label>
-                            <span>${log.host || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Image Tag</label>
-                            <span>${log.image_tag || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Upstream System</label>
-                            <span>${log.upstream_system || '-'}</span>
-                        </div>
-                        <div class="detail-item full-width">
-                            <label>Caller</label>
-                            <span>${log.caller || '-'}</span>
-                        </div>
-                        <div class="detail-item full-width">
-                            <label>Message</label>
-                            <span>${escapeHtml(log.message) || '-'}</span>
-                        </div>
-                    </div>
-                    <div class="raw-log-header">Raw Log</div>
-                    <pre class="raw-log">${escapeHtml(log.raw_log)}</pre>
-                `;
-
-                modalOverlay.classList.add('active');
+                showLogDetailContent(log);
             } catch (error) {
                 console.error('Error loading log detail:', error);
+            }
+        }
+
+        function showLogDetailContent(log) {
+            // Update navigation buttons
+            const prevBtn = document.getElementById('prev-log-btn');
+            const nextBtn = document.getElementById('next-log-btn');
+            const positionSpan = document.getElementById('log-position');
+            
+            prevBtn.disabled = currentLogIndex <= 0;
+            nextBtn.disabled = currentLogIndex >= currentLogs.length - 1;
+            
+            // Show position (1-indexed for human readability)
+            positionSpan.textContent = `(${currentLogIndex + 1} of ${currentLogs.length})`;
+
+            modalBody.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Level</label>
+                        <span><span class="level-badge level-${log.level}">${log.level}</span></span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Timestamp</label>
+                        <span>${log.log_time || log.timestamp}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Trace ID</label>
+                        <span>${log.trace_id || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>External ID</label>
+                        <span>${log.external_id || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Pod Name</label>
+                        <span>${log.pod_name || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Namespace</label>
+                        <span>${log.namespace || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Container</label>
+                        <span>${log.container_name || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Host</label>
+                        <span>${log.host || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Image Tag</label>
+                        <span>${log.image_tag || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Upstream System</label>
+                        <span>${log.upstream_system || '-'}</span>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Caller</label>
+                        <span>${log.caller || '-'}</span>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Message</label>
+                        <span>${escapeHtml(log.message) || '-'}</span>
+                    </div>
+                </div>
+                <div class="raw-log-header">Raw Log</div>
+                <pre class="raw-log">${escapeHtml(log.raw_log)}</pre>
+            `;
+
+            modalOverlay.classList.add('active');
+            
+            // Highlight current row in table
+            document.querySelectorAll('.logs-table tr').forEach(tr => tr.classList.remove('active-row'));
+            const activeRow = document.querySelector(`tr[data-log-index="${currentLogIndex}"]`);
+            if (activeRow) activeRow.classList.add('active-row');
+        }
+
+        function navigateLog(direction) {
+            const newIndex = currentLogIndex + direction;
+            if (newIndex >= 0 && newIndex < currentLogs.length) {
+                showLogDetailByIndex(newIndex);
             }
         }
 
         function closeModal(event) {
             if (!event || event.target === modalOverlay) {
                 modalOverlay.classList.remove('active');
+                currentLogIndex = -1;
+                // Remove highlight from table
+                document.querySelectorAll('.logs-table tr').forEach(tr => tr.classList.remove('active-row'));
             }
         }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
+            if (modalOverlay.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                } else if (e.key === 'ArrowUp' || e.key === 'k') {
+                    e.preventDefault();
+                    navigateLog(-1);
+                } else if (e.key === 'ArrowDown' || e.key === 'j') {
+                    e.preventDefault();
+                    navigateLog(1);
+                }
             }
         });
     </script>
