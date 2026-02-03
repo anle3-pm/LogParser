@@ -297,7 +297,8 @@ def get_stats():
 
 if __name__ == '__main__':
     # Bind to 0.0.0.0 to allow access from:
-    # - http://localhost:5000
-    # - http://127.0.0.1:5000
-    # - http://<your-ip>:5000 (from other devices on network)
-    app.run(host='0.0.0.0', debug=True, port=5000)
+    # - http://localhost:5050
+    # - http://127.0.0.1:5050
+    # - http://<your-ip>:5050 (from other devices on network)
+    # Using port 5050 to avoid conflict with macOS AirPlay Receiver (port 5000)
+    app.run(host='0.0.0.0', debug=True, port=5050)

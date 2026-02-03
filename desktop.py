@@ -23,7 +23,7 @@ from app import app
 
 def start_server():
     """Start Flask server in a separate thread."""
-    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+    app.run(host='127.0.0.1', port=5050, debug=False, use_reloader=False)
 
 if __name__ == '__main__':
     # Start Flask server in background thread
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # Create native window
     window = webview.create_window(
         'Log Parser',
-        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5050',
         width=1400,
         height=900,
         min_size=(800, 600),

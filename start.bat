@@ -130,12 +130,12 @@ if defined PID (
     echo ========================================
     echo.
     echo   Access URLs:
-    echo     http://localhost:5000
-    echo     http://127.0.0.1:5000
+    echo     http://localhost:5050
+    echo     http://127.0.0.1:5050
     REM Get local IP
     for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do (
         for /f "tokens=1" %%b in ("%%a") do (
-            echo     http://%%b:5000 (network^)
+            echo     http://%%b:5050 (network^)
             goto :done_ip
         )
     )
@@ -150,7 +150,7 @@ if defined PID (
     REM Open in browser
     echo Opening browser...
     timeout /t 2 /nobreak >nul
-    start http://localhost:5000
+    start http://localhost:5050
 ) else (
     echo [OK] Service starting...
     echo.
@@ -159,8 +159,8 @@ if defined PID (
     echo ========================================
     echo.
     echo   Access URLs:
-    echo     http://localhost:5000
-    echo     http://127.0.0.1:5000
+    echo     http://localhost:5050
+    echo     http://127.0.0.1:5050
     echo.
     echo   Log file: %SCRIPT_DIR%logparser.log
     echo.
@@ -169,7 +169,7 @@ if defined PID (
     
     REM Open in browser
     timeout /t 2 /nobreak >nul
-    start http://localhost:5000
+    start http://localhost:5050
 )
 
 pause

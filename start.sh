@@ -152,12 +152,12 @@ if ps -p $PID > /dev/null 2>&1; then
     echo "========================================"
     echo ""
     echo "  Access URLs:"
-    echo "    http://localhost:5000"
-    echo "    http://127.0.0.1:5000"
+    echo "    http://localhost:5050"
+    echo "    http://127.0.0.1:5050"
     # Get local IP address
     LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo "")
     if [ -n "$LOCAL_IP" ]; then
-        echo "    http://$LOCAL_IP:5000 (network)"
+        echo "    http://$LOCAL_IP:5050 (network)"
     fi
     echo ""
     echo "  PID:      $PID"
@@ -170,7 +170,7 @@ if ps -p $PID > /dev/null 2>&1; then
     if command_exists open; then
         echo "Opening browser..."
         sleep 1
-        open "http://localhost:5000"
+        open "http://localhost:5050"
     fi
 else
     print_error "Failed to start service"
