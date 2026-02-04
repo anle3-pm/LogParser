@@ -352,6 +352,10 @@
             border-color: var(--accent);
         }
 
+        .filter-group .date-input {
+            min-width: 180px;
+        }
+
         .filter-group input::placeholder {
             color: var(--text-muted);
         }
@@ -1173,10 +1177,12 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>Namespace</label>
-                    <select id="namespace-filter">
-                        <option value="all">All Namespaces</option>
-                    </select>
+                    <label>Start Date</label>
+                    <input type="datetime-local" id="start-date-filter" class="date-input">
+                </div>
+                <div class="filter-group">
+                    <label>End Date</label>
+                    <input type="datetime-local" id="end-date-filter" class="date-input">
                 </div>
                 <div class="filter-group">
                     <label>External ID</label>
@@ -1371,8 +1377,13 @@
                     availableLevels = data.filters.levels;
                     populateLevelFilter(data.filters.levels);
                     populateFilter('pod-filter', data.filters.pod_names);
-                    populateFilter('namespace-filter', data.filters.namespaces);
                     populateFilter('external-id-filter', data.filters.external_ids);
+                    
+                    // Set date range defaults based on data
+                    if (data.filters.date_range) {
+                        document.getElementById('start-date-filter').value = data.filters.date_range.min || '';
+                        document.getElementById('end-date-filter').value = data.filters.date_range.max || '';
+                    }
 
                     // Show sections
                     statsBadge.style.display = 'block';
@@ -1537,8 +1548,9 @@
                 search: document.getElementById('search-input').value,
                 levels: levelsParam,
                 pod_name: document.getElementById('pod-filter').value,
-                namespace: document.getElementById('namespace-filter').value,
                 external_id: document.getElementById('external-id-filter').value,
+                start_date: document.getElementById('start-date-filter').value,
+                end_date: document.getElementById('end-date-filter').value,
                 sort_by: sortBy,
                 sort_order: sortOrder
             });
@@ -1692,8 +1704,9 @@
         // Filters
         document.getElementById('search-input').addEventListener('input', debounceFilter);
         document.getElementById('pod-filter').addEventListener('change', applyFilters);
-        document.getElementById('namespace-filter').addEventListener('change', applyFilters);
         document.getElementById('external-id-filter').addEventListener('change', applyFilters);
+        document.getElementById('start-date-filter').addEventListener('change', applyFilters);
+        document.getElementById('end-date-filter').addEventListener('change', applyFilters);
         document.getElementById('per-page-select').addEventListener('change', (e) => {
             perPage = parseInt(e.target.value);
             currentPage = 1;
@@ -1708,6 +1721,7 @@
         function applyFilters() {
             currentPage = 1;
             loadLogs();
+            loadChartData();  // Update charts with current filters
         }
 
         function clearFilters() {
@@ -1721,8 +1735,9 @@
             updateLevelDisplay();
             // Clear other filters
             document.getElementById('pod-filter').value = 'all';
-            document.getElementById('namespace-filter').value = 'all';
             document.getElementById('external-id-filter').value = 'all';
+            document.getElementById('start-date-filter').value = '';
+            document.getElementById('end-date-filter').value = '';
             // Reset sort to default
             sortBy = 'timestamp';
             sortOrder = 'asc';
@@ -1995,8 +2010,20 @@
         // Charts
         async function loadChartData() {
             try {
-                // Add timestamp to prevent browser caching
-                const response = await fetch('/stats?t=' + Date.now());
+                // Build filter parameters (same as loadLogs)
+                const levelsParam = selectedLevels.length > 0 ? selectedLevels.join(',') : '';
+                
+                const params = new URLSearchParams({
+                    t: Date.now(),  // Cache buster
+                    search: document.getElementById('search-input').value,
+                    levels: levelsParam,
+                    pod_name: document.getElementById('pod-filter').value,
+                    external_id: document.getElementById('external-id-filter').value,
+                    start_date: document.getElementById('start-date-filter').value,
+                    end_date: document.getElementById('end-date-filter').value
+                });
+                
+                const response = await fetch('/stats?' + params.toString());
                 chartData = await response.json();
                 
                 if (chartData.error) {

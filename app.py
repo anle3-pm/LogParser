@@ -157,25 +157,23 @@ def filter_logs(logs, filters):
     if filters.get('pod_name') and filters['pod_name'] != 'all':
         filtered = [log for log in filtered if log.get('pod_name') == filters['pod_name']]
     
-    # Filter by namespace
-    if filters.get('namespace') and filters['namespace'] != 'all':
-        filtered = [log for log in filtered if log.get('namespace') == filters['namespace']]
-    
     # Filter by external ID
     if filters.get('external_id') and filters['external_id'] != 'all':
         filtered = [log for log in filtered if log.get('external_id') == filters['external_id']]
     
     # Filter by date range
     if filters.get('start_date'):
+        start = filters['start_date'].replace('T', ' ')  # Handle datetime-local format
         filtered = [
             log for log in filtered
-            if log.get('timestamp', '') >= filters['start_date']
+            if (log.get('log_time', '') or log.get('timestamp', ''))[:16].replace('T', ' ') >= start
         ]
     
     if filters.get('end_date'):
+        end = filters['end_date'].replace('T', ' ')  # Handle datetime-local format
         filtered = [
             log for log in filtered
-            if log.get('timestamp', '') <= filters['end_date']
+            if (log.get('log_time', '') or log.get('timestamp', ''))[:16].replace('T', ' ') <= end
         ]
     
     return filtered
@@ -210,8 +208,26 @@ def upload_file():
             # Get unique values for filters
             levels = sorted(set(log.get('level', 'unknown') for log in parsed_logs))
             pod_names = sorted(set(log.get('pod_name', '') for log in parsed_logs if log.get('pod_name')))
-            namespaces = sorted(set(log.get('namespace', '') for log in parsed_logs if log.get('namespace')))
             external_ids = sorted(set(log.get('external_id', '') for log in parsed_logs if log.get('external_id')))
+            
+            # Get date range from logs
+            timestamps = []
+            for log in parsed_logs:
+                ts = log.get('log_time', log.get('timestamp', ''))
+                if ts:
+                    timestamps.append(ts)
+            
+            date_range = {}
+            if timestamps:
+                sorted_ts = sorted(timestamps)
+                # Convert to datetime-local format for HTML input
+                min_ts = sorted_ts[0]
+                max_ts = sorted_ts[-1]
+                # Format for datetime-local input (YYYY-MM-DDTHH:MM)
+                if 'T' in min_ts:
+                    date_range['min'] = min_ts[:16]  # YYYY-MM-DDTHH:MM
+                if 'T' in max_ts:
+                    date_range['max'] = max_ts[:16]
             
             return jsonify({
                 'success': True,
@@ -219,8 +235,8 @@ def upload_file():
                 'filters': {
                     'levels': levels,
                     'pod_names': pod_names,
-                    'namespaces': namespaces,
-                    'external_ids': external_ids
+                    'external_ids': external_ids,
+                    'date_range': date_range
                 }
             })
         except Exception as e:
@@ -243,7 +259,6 @@ def get_logs():
         'search': request.args.get('search', ''),
         'levels': levels_list if levels_list else ['all'],
         'pod_name': request.args.get('pod_name', 'all'),
-        'namespace': request.args.get('namespace', 'all'),
         'external_id': request.args.get('external_id', 'all'),
         'start_date': request.args.get('start_date', ''),
         'end_date': request.args.get('end_date', '')
@@ -344,21 +359,37 @@ def get_log_detail(log_id):
 
 @app.route('/stats', methods=['GET'])
 def get_stats():
-    """Get statistics about the loaded logs."""
+    """Get statistics about the loaded logs (supports filtering)."""
     global parsed_logs
     
     if not parsed_logs:
         return jsonify({'error': 'No logs loaded'}), 404
     
+    # Get filter parameters (same as /logs endpoint)
+    levels_param = request.args.get('levels', '')
+    levels_list = [l.strip() for l in levels_param.split(',') if l.strip()] if levels_param else []
+    
+    filters = {
+        'search': request.args.get('search', ''),
+        'levels': levels_list if levels_list else ['all'],
+        'pod_name': request.args.get('pod_name', 'all'),
+        'external_id': request.args.get('external_id', 'all'),
+        'start_date': request.args.get('start_date', ''),
+        'end_date': request.args.get('end_date', '')
+    }
+    
+    # Apply filters
+    filtered = filter_logs(parsed_logs, filters)
+    
     # Count by level
     level_counts = {}
-    for log in parsed_logs:
+    for log in filtered:
         level = log.get('level', 'unknown')
         level_counts[level] = level_counts.get(level, 0) + 1
     
     # Timeline data - group by hour
     timeline = {}
-    for log in parsed_logs:
+    for log in filtered:
         timestamp = log.get('log_time', log.get('timestamp', ''))
         if timestamp:
             try:
@@ -388,7 +419,7 @@ def get_stats():
     sorted_timeline = dict(sorted(timeline.items()))
     
     return jsonify({
-        'total_logs': len(parsed_logs),
+        'total_logs': len(filtered),
         'level_counts': level_counts,
         'timeline': sorted_timeline
     })

@@ -7,6 +7,7 @@ A log viewer for parsing, filtering, and searching through application logs expo
 - **File Upload**: Drag-and-drop or browse to upload CSV log files
 - **Smart Parsing**: Automatically extracts structured data from nested JSON logs
 - **Multi-Level Filtering**: Select multiple log levels at once (e.g., error + warn)
+- **Date Range Filtering**: Filter logs by start and end date/time
 - **Sortable Columns**: Click any column header to sort ascending/descending
 - **Full-Text Search**: Search across messages, trace IDs, pod names, and caller information
 - **Pagination**: Efficiently browse through large log files
@@ -83,7 +84,7 @@ The executable will be at `dist\LogParser.exe`. Double-click to run.
 ## Usage
 
 1. **Upload Logs**: Drag and drop a CSV log file onto the upload area, or click to browse
-2. **Filter**: Use the filter dropdowns to narrow down by log level, pod, namespace, or external ID
+2. **Filter**: Use the filter dropdowns to narrow down by log level, pod, or external ID. Use date range filters to focus on specific time periods
 3. **Sort**: Click any column header to sort by that field
 4. **Search**: Type in the search box to find logs containing specific text
 5. **View Details**: Click any row to see the full log entry with all metadata
