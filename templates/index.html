@@ -1277,7 +1277,8 @@
 
                     // Load logs and charts
                     loadLogs();
-                    loadChartData();
+                    // Small delay to ensure backend has processed the data
+                    setTimeout(() => loadChartData(), 100);
                 } else {
                     alert(data.error || 'Error uploading file');
                 }
@@ -1738,7 +1739,8 @@
         // Charts
         async function loadChartData() {
             try {
-                const response = await fetch('/stats');
+                // Add timestamp to prevent browser caching
+                const response = await fetch('/stats?t=' + Date.now());
                 chartData = await response.json();
                 
                 if (chartData.error) {

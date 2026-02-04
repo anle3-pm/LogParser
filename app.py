@@ -358,4 +358,5 @@ if __name__ == '__main__':
     # - http://127.0.0.1:5050
     # - http://<your-ip>:5050 (from other devices on network)
     # Using port 5050 to avoid conflict with macOS AirPlay Receiver (port 5000)
-    app.run(host='0.0.0.0', debug=True, port=5050)
+    # Disable reloader to prevent losing in-memory data when files change
+    app.run(host='0.0.0.0', debug=True, port=5050, use_reloader=False)
