@@ -71,6 +71,31 @@ def parse_csv_logs(filepath):
                     log_entry['external_id'] = log_json.get('externalID', '')
                     log_entry['caller'] = log_json.get('caller', '')
                     log_entry['log_time'] = log_json.get('time', '')
+                    # Additional fields for detailed view
+                    log_entry['subscription_id'] = log_json.get('subscriptionId', '')
+                    log_entry['subscription_external_id'] = log_json.get('subscriptionExternalId', '')
+                    log_entry['error'] = log_json.get('error', '')
+                    log_entry['error_message'] = log_json.get('errorMessage', '')
+                    log_entry['request_id'] = log_json.get('requestId', '')
+                    log_entry['user_id'] = log_json.get('userId', '')
+                    log_entry['org_id'] = log_json.get('orgId', '')
+                    log_entry['product_id'] = log_json.get('productId', '')
+                    log_entry['order_id'] = log_json.get('orderId', '')
+                    log_entry['action'] = log_json.get('action', '')
+                    log_entry['duration'] = log_json.get('duration', '')
+                    log_entry['status'] = log_json.get('status', '')
+                    log_entry['http_status'] = log_json.get('httpStatus', '') or log_json.get('statusCode', '')
+                    log_entry['method'] = log_json.get('method', '')
+                    log_entry['path'] = log_json.get('path', '')
+                    log_entry['stack_trace'] = log_json.get('stackTrace', '') or log_json.get('stack', '')
+                    # Store all extra JSON fields not explicitly captured
+                    known_keys = {'level', 'message', 'traceId', 'imageTag', 'upstreamSystem', 
+                                  'marketplaceID', 'externalID', 'caller', 'time', 'subscriptionId',
+                                  'subscriptionExternalId', 'error', 'errorMessage', 'requestId',
+                                  'userId', 'orgId', 'productId', 'orderId', 'action', 'duration',
+                                  'status', 'httpStatus', 'statusCode', 'method', 'path', 'stackTrace', 'stack'}
+                    extra_fields = {k: v for k, v in log_json.items() if k not in known_keys and v}
+                    log_entry['extra_fields'] = extra_fields if extra_fields else None
                 else:
                     log_entry['level'] = 'unknown'
                     log_entry['message'] = row.get('_source.log', '')[:200]
@@ -81,6 +106,23 @@ def parse_csv_logs(filepath):
                     log_entry['external_id'] = ''
                     log_entry['caller'] = ''
                     log_entry['log_time'] = ''
+                    log_entry['subscription_id'] = ''
+                    log_entry['subscription_external_id'] = ''
+                    log_entry['error'] = ''
+                    log_entry['error_message'] = ''
+                    log_entry['request_id'] = ''
+                    log_entry['user_id'] = ''
+                    log_entry['org_id'] = ''
+                    log_entry['product_id'] = ''
+                    log_entry['order_id'] = ''
+                    log_entry['action'] = ''
+                    log_entry['duration'] = ''
+                    log_entry['status'] = ''
+                    log_entry['http_status'] = ''
+                    log_entry['method'] = ''
+                    log_entry['path'] = ''
+                    log_entry['stack_trace'] = ''
+                    log_entry['extra_fields'] = None
                 
                 logs.append(log_entry)
             except Exception as e:

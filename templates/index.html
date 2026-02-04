@@ -712,24 +712,131 @@
             grid-column: 1 / -1;
         }
 
-        .raw-log {
+        .detail-section {
+            margin-bottom: 20px;
             background: var(--bg-primary);
             border-radius: 8px;
             padding: 16px;
-            font-family: 'Monaco', 'Menlo', monospace;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-section.error-section {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .section-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header.collapsible {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header.collapsible:hover {
+            color: var(--primary);
+        }
+
+        .toggle-icon {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-weight: 500;
+        }
+
+        .message-text {
+            line-height: 1.6;
+        }
+
+        .monospace {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
             font-size: 12px;
-            line-height: 1.8;
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+
+        .stack-trace {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #ef4444;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .http-method {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .http-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .http-status.status-2xx { background: #10b981; color: white; }
+        .http-status.status-3xx { background: #3b82f6; color: white; }
+        .http-status.status-4xx { background: #f59e0b; color: white; }
+        .http-status.status-5xx { background: #ef4444; color: white; }
+
+        .raw-log-container {
+            margin-top: 12px;
+        }
+
+        .raw-log {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
             color: var(--text-secondary);
+            max-height: 400px;
+            overflow-y: auto;
         }
 
-        .raw-log-header {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 12px;
-            color: var(--text-primary);
+        .sql-keyword {
+            color: #c084fc;
+            font-weight: 600;
+        }
+
+        .sql-string {
+            color: #4ade80;
+        }
+
+        .sql-function {
+            color: #60a5fa;
+        }
+
+        .json-formatted {
+            color: var(--text-secondary);
         }
 
         /* Loading */
@@ -1657,59 +1764,154 @@
             // Show position (1-indexed for human readability)
             positionSpan.textContent = `(${currentLogIndex + 1} of ${currentLogs.length})`;
 
+            // Build error section if present
+            let errorSection = '';
+            if (log.error || log.error_message || log.stack_trace) {
+                errorSection = `
+                    <div class="detail-section error-section">
+                        <div class="section-header">Error Details</div>
+                        <div class="detail-grid">
+                            ${log.error ? `<div class="detail-item full-width"><label>Error</label><span class="error-text">${escapeHtml(log.error)}</span></div>` : ''}
+                            ${log.error_message ? `<div class="detail-item full-width"><label>Error Message</label><span class="error-text">${escapeHtml(log.error_message)}</span></div>` : ''}
+                            ${log.stack_trace ? `<div class="detail-item full-width"><label>Stack Trace</label><pre class="stack-trace">${escapeHtml(log.stack_trace)}</pre></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build subscription/order section if present
+            let subscriptionSection = '';
+            if (log.subscription_id || log.subscription_external_id || log.order_id || log.product_id) {
+                subscriptionSection = `
+                    <div class="detail-section">
+                        <div class="section-header">Subscription & Order Info</div>
+                        <div class="detail-grid">
+                            ${log.subscription_id ? `<div class="detail-item"><label>Subscription ID</label><span class="monospace">${log.subscription_id}</span></div>` : ''}
+                            ${log.subscription_external_id ? `<div class="detail-item"><label>Subscription External ID</label><span class="monospace">${log.subscription_external_id}</span></div>` : ''}
+                            ${log.order_id ? `<div class="detail-item"><label>Order ID</label><span class="monospace">${log.order_id}</span></div>` : ''}
+                            ${log.product_id ? `<div class="detail-item"><label>Product ID</label><span class="monospace">${log.product_id}</span></div>` : ''}
+                            ${log.org_id ? `<div class="detail-item"><label>Org ID</label><span class="monospace">${log.org_id}</span></div>` : ''}
+                            ${log.user_id ? `<div class="detail-item"><label>User ID</label><span class="monospace">${log.user_id}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build request section if present
+            let requestSection = '';
+            if (log.method || log.path || log.http_status || log.duration || log.request_id) {
+                requestSection = `
+                    <div class="detail-section">
+                        <div class="section-header">Request Info</div>
+                        <div class="detail-grid">
+                            ${log.request_id ? `<div class="detail-item"><label>Request ID</label><span class="monospace">${log.request_id}</span></div>` : ''}
+                            ${log.method ? `<div class="detail-item"><label>Method</label><span class="http-method">${log.method}</span></div>` : ''}
+                            ${log.path ? `<div class="detail-item"><label>Path</label><span class="monospace">${escapeHtml(log.path)}</span></div>` : ''}
+                            ${log.http_status ? `<div class="detail-item"><label>HTTP Status</label><span class="http-status status-${Math.floor(log.http_status/100)}xx">${log.http_status}</span></div>` : ''}
+                            ${log.duration ? `<div class="detail-item"><label>Duration</label><span>${log.duration}</span></div>` : ''}
+                            ${log.status ? `<div class="detail-item"><label>Status</label><span>${log.status}</span></div>` : ''}
+                            ${log.action ? `<div class="detail-item"><label>Action</label><span>${escapeHtml(log.action)}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build extra fields section if present
+            let extraFieldsSection = '';
+            if (log.extra_fields && Object.keys(log.extra_fields).length > 0) {
+                const extraFieldsHtml = Object.entries(log.extra_fields).map(([key, value]) => {
+                    const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+                    return `<div class="detail-item"><label>${escapeHtml(key)}</label><span class="monospace">${escapeHtml(String(displayValue))}</span></div>`;
+                }).join('');
+                extraFieldsSection = `
+                    <div class="detail-section">
+                        <div class="section-header">Additional Fields</div>
+                        <div class="detail-grid">${extraFieldsHtml}</div>
+                    </div>
+                `;
+            }
+
+            // Format raw log - detect and format SQL statements
+            let formattedRawLog = formatRawLog(log.raw_log);
+
             modalBody.innerHTML = `
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Level</label>
-                        <span><span class="level-badge level-${log.level}">${log.level}</span></span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Timestamp</label>
-                        <span>${log.log_time || log.timestamp}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Trace ID</label>
-                        <span>${log.trace_id || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>External ID</label>
-                        <span>${log.external_id || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Pod Name</label>
-                        <span>${log.pod_name || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Namespace</label>
-                        <span>${log.namespace || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Container</label>
-                        <span>${log.container_name || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Host</label>
-                        <span>${log.host || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Image Tag</label>
-                        <span>${log.image_tag || '-'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Upstream System</label>
-                        <span>${log.upstream_system || '-'}</span>
-                    </div>
-                    <div class="detail-item full-width">
-                        <label>Caller</label>
-                        <span>${log.caller || '-'}</span>
-                    </div>
-                    <div class="detail-item full-width">
-                        <label>Message</label>
-                        <span>${escapeHtml(log.message) || '-'}</span>
+                <div class="detail-section">
+                    <div class="section-header">Basic Info</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Level</label>
+                            <span><span class="level-badge level-${log.level}">${log.level}</span></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Timestamp</label>
+                            <span>${log.log_time || log.timestamp}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Trace ID</label>
+                            <span class="monospace">${log.trace_id || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>External ID</label>
+                            <span class="monospace">${log.external_id || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Marketplace ID</label>
+                            <span class="monospace">${log.marketplace_id || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Upstream System</label>
+                            <span>${log.upstream_system || '-'}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <label>Caller</label>
+                            <span class="monospace">${log.caller || '-'}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <label>Message</label>
+                            <span class="message-text">${escapeHtml(log.message) || '-'}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="raw-log-header">Raw Log</div>
-                <pre class="raw-log">${escapeHtml(log.raw_log)}</pre>
+
+                ${errorSection}
+                ${subscriptionSection}
+                ${requestSection}
+                ${extraFieldsSection}
+
+                <div class="detail-section">
+                    <div class="section-header">Infrastructure</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Pod Name</label>
+                            <span class="monospace">${log.pod_name || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Namespace</label>
+                            <span>${log.namespace || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Container</label>
+                            <span>${log.container_name || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Host</label>
+                            <span class="monospace">${log.host || '-'}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <label>Image Tag</label>
+                            <span class="monospace">${log.image_tag || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-header collapsible" onclick="toggleRawLog(this)">
+                        Raw Log <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="raw-log-container">
+                        <pre class="raw-log">${formattedRawLog}</pre>
+                    </div>
+                </div>
             `;
 
             modalOverlay.classList.add('active');
@@ -1718,6 +1920,60 @@
             document.querySelectorAll('.logs-table tr').forEach(tr => tr.classList.remove('active-row'));
             const activeRow = document.querySelector(`tr[data-log-index="${currentLogIndex}"]`);
             if (activeRow) activeRow.classList.add('active-row');
+        }
+
+        function formatRawLog(rawLog) {
+            if (!rawLog) return '-';
+            
+            let formatted = escapeHtml(rawLog);
+            
+            // Detect and format SQL statements
+            if (formatted.includes('UPDATE ') || formatted.includes('INSERT ') || formatted.includes('SELECT ') || formatted.includes('DELETE ')) {
+                // Add line breaks before SQL keywords
+                formatted = formatted
+                    .replace(/;(\s*)(UPDATE|INSERT|SELECT|DELETE)/g, ';\n\n$2')
+                    .replace(/(UPDATE\s+\w+\s+SET)/g, '<span class="sql-keyword">UPDATE</span> <span class="sql-table">$1</span>'.replace('UPDATE ', '').replace(' SET', '') + ' <span class="sql-keyword">SET</span>')
+                    .replace(/\bUPDATE\b/g, '<span class="sql-keyword">UPDATE</span>')
+                    .replace(/\bSET\b/g, '<span class="sql-keyword">SET</span>')
+                    .replace(/\bWHERE\b/g, '\n  <span class="sql-keyword">WHERE</span>')
+                    .replace(/\bINSERT\b/g, '<span class="sql-keyword">INSERT</span>')
+                    .replace(/\bINTO\b/g, '<span class="sql-keyword">INTO</span>')
+                    .replace(/\bSELECT\b/g, '<span class="sql-keyword">SELECT</span>')
+                    .replace(/\bFROM\b/g, '<span class="sql-keyword">FROM</span>')
+                    .replace(/\bDELETE\b/g, '<span class="sql-keyword">DELETE</span>')
+                    .replace(/\bNOW\(\)/g, '<span class="sql-function">NOW()</span>')
+                    .replace(/= &#39;([^&#]*?)&#39;/g, '= <span class="sql-string">\'$1\'</span>');
+            }
+            
+            // Try to detect and format JSON within the log
+            const jsonMatch = formatted.match(/\{.*\}/s);
+            if (jsonMatch && jsonMatch[0].length > 50) {
+                try {
+                    // Check if it looks like valid JSON structure
+                    const possibleJson = rawLog.match(/\{.*\}/s);
+                    if (possibleJson) {
+                        const parsed = JSON.parse(possibleJson[0]);
+                        const prettyJson = JSON.stringify(parsed, null, 2);
+                        formatted = formatted.replace(escapeHtml(possibleJson[0]), '<span class="json-formatted">' + escapeHtml(prettyJson) + '</span>');
+                    }
+                } catch (e) {
+                    // Not valid JSON, keep original
+                }
+            }
+            
+            return formatted;
+        }
+
+        function toggleRawLog(header) {
+            const container = header.nextElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                container.style.display = 'none';
+                icon.textContent = '▶';
+            }
         }
 
         function navigateLog(direction) {
