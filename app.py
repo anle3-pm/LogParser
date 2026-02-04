@@ -282,16 +282,6 @@ def get_stats():
         level = log.get('level', 'unknown')
         level_counts[level] = level_counts.get(level, 0) + 1
     
-    # Count by pod (top 10)
-    pod_counts = {}
-    for log in parsed_logs:
-        pod = log.get('pod_name', 'unknown')
-        if pod:
-            pod_counts[pod] = pod_counts.get(pod, 0) + 1
-    
-    # Sort pods by count and take top 10
-    top_pods = dict(sorted(pod_counts.items(), key=lambda x: x[1], reverse=True)[:10])
-    
     # Timeline data - group by hour
     timeline = {}
     for log in parsed_logs:
@@ -300,10 +290,22 @@ def get_stats():
             try:
                 # Parse the timestamp and round to hour
                 if 'T' in timestamp:
-                    hour = timestamp[:13] + ':00'  # "2026-02-02T06" -> "2026-02-02T06:00"
+                    hour = timestamp[:13] + ':00:00'  # "2026-02-02T06" -> "2026-02-02T06:00:00"
+                elif '/' in timestamp:
+                    # Handle format like "02/02/2026 6:33:00 am"
+                    from datetime import datetime
+                    try:
+                        dt = datetime.strptime(timestamp, '%m/%d/%Y %I:%M:%S %p')
+                        hour = dt.strftime('%Y-%m-%dT%H:00:00')
+                    except:
+                        try:
+                            dt = datetime.strptime(timestamp, '%m/%d/%Y %H:%M:%S')
+                            hour = dt.strftime('%Y-%m-%dT%H:00:00')
+                        except:
+                            continue
                 else:
                     # Handle other formats
-                    hour = timestamp[:13]
+                    hour = timestamp[:13] + ':00:00'
                 timeline[hour] = timeline.get(hour, 0) + 1
             except:
                 pass
@@ -311,14 +313,9 @@ def get_stats():
     # Sort timeline by time
     sorted_timeline = dict(sorted(timeline.items()))
     
-    # Limit to last 48 data points if too many
-    if len(sorted_timeline) > 48:
-        sorted_timeline = dict(list(sorted_timeline.items())[-48:])
-    
     return jsonify({
         'total_logs': len(parsed_logs),
         'level_counts': level_counts,
-        'pod_counts': top_pods,
         'timeline': sorted_timeline
     })
 
