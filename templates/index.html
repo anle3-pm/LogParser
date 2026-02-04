@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log Parser</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -153,6 +154,124 @@
 
         #file-input {
             display: none;
+        }
+
+        /* Dashboard / Charts */
+        .dashboard-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .dashboard-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .dashboard-toggle {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .dashboard-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .chart-card h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+
+        .chart-card.wide {
+            grid-column: span 2;
+        }
+
+        .chart-card.wide .chart-container {
+            height: 180px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .stat-card.info .stat-value { color: var(--info); }
+        .stat-card.warning .stat-value { color: var(--warning); }
+        .stat-card.error .stat-value { color: var(--error); }
+        .stat-card.success .stat-value { color: var(--success); }
+
+        @media (max-width: 768px) {
+            .chart-card.wide {
+                grid-column: span 1;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Filters */
@@ -867,6 +986,57 @@
             </button>
         </section>
 
+        <section class="dashboard-section" id="dashboard-section">
+            <div class="dashboard-header">
+                <h3>Analytics Dashboard</h3>
+                <button class="dashboard-toggle" onclick="toggleDashboard()">Hide Charts</button>
+            </div>
+            
+            <div class="summary-stats" id="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">Total Logs</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-value" id="stat-info">0</div>
+                    <div class="stat-label">Info</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="stat-warn">0</div>
+                    <div class="stat-label">Warnings</div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-value" id="stat-error">0</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value" id="stat-debug">0</div>
+                    <div class="stat-label">Debug</div>
+                </div>
+            </div>
+
+            <div class="charts-grid" id="charts-container">
+                <div class="chart-card">
+                    <h4>Log Levels Distribution</h4>
+                    <div class="chart-container">
+                        <canvas id="levels-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h4>Top Pods by Log Count</h4>
+                    <div class="chart-container">
+                        <canvas id="pods-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card wide">
+                    <h4>Logs Over Time</h4>
+                    <div class="chart-container">
+                        <canvas id="timeline-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="filters-section" id="filters-section">
             <div class="filters-header">
                 <h3>Filters</h3>
@@ -1007,6 +1177,13 @@
         let sortOrder = 'desc';
         let currentLogs = []; // Store currently displayed logs
         let currentLogIndex = -1; // Index in currentLogs array
+        
+        // Charts
+        let levelsChart = null;
+        let podsChart = null;
+        let timelineChart = null;
+        let dashboardVisible = true;
+        let chartData = null;
 
         // DOM Elements
         const uploadSection = document.getElementById('upload-section');
@@ -1058,10 +1235,16 @@
             
             // Show upload section, hide others
             uploadSection.style.display = 'block';
+            document.getElementById('dashboard-section').classList.remove('active');
             filtersSection.classList.remove('active');
             logsSection.classList.remove('active');
             statsBadge.style.display = 'none';
             document.getElementById('new-file-btn').style.display = 'none';
+            
+            // Destroy charts
+            if (levelsChart) { levelsChart.destroy(); levelsChart = null; }
+            if (podsChart) { podsChart.destroy(); podsChart = null; }
+            if (timelineChart) { timelineChart.destroy(); timelineChart = null; }
             
             // Clear file input so the same file can be re-selected
             fileInput.value = '';
@@ -1095,12 +1278,14 @@
                     // Show sections
                     statsBadge.style.display = 'block';
                     document.getElementById('new-file-btn').style.display = 'block';
+                    document.getElementById('dashboard-section').classList.add('active');
                     filtersSection.classList.add('active');
                     logsSection.classList.add('active');
                     uploadSection.style.display = 'none';
 
-                    // Load logs
+                    // Load logs and charts
                     loadLogs();
+                    loadChartData();
                 } else {
                     alert(data.error || 'Error uploading file');
                 }
@@ -1553,6 +1738,216 @@
                 currentLogIndex = -1;
                 // Remove highlight from table
                 document.querySelectorAll('.logs-table tr').forEach(tr => tr.classList.remove('active-row'));
+            }
+        }
+
+        // Charts
+        async function loadChartData() {
+            try {
+                const response = await fetch('/stats');
+                chartData = await response.json();
+                
+                if (chartData.error) {
+                    console.error('Error loading stats:', chartData.error);
+                    return;
+                }
+                
+                updateSummaryStats(chartData);
+                createLevelsChart(chartData.level_counts);
+                createPodsChart(chartData.pod_counts);
+                createTimelineChart(chartData.timeline);
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+            }
+        }
+
+        function updateSummaryStats(data) {
+            document.getElementById('stat-total').textContent = data.total_logs.toLocaleString();
+            document.getElementById('stat-info').textContent = (data.level_counts.info || 0).toLocaleString();
+            document.getElementById('stat-warn').textContent = (data.level_counts.warn || data.level_counts.warning || 0).toLocaleString();
+            document.getElementById('stat-error').textContent = (data.level_counts.error || 0).toLocaleString();
+            document.getElementById('stat-debug').textContent = (data.level_counts.debug || 0).toLocaleString();
+        }
+
+        function createLevelsChart(levelCounts) {
+            const ctx = document.getElementById('levels-chart').getContext('2d');
+            
+            if (levelsChart) {
+                levelsChart.destroy();
+            }
+            
+            const labels = Object.keys(levelCounts);
+            const values = Object.values(levelCounts);
+            
+            const colorMap = {
+                'info': '#06b6d4',
+                'warn': '#f59e0b',
+                'warning': '#f59e0b',
+                'error': '#ef4444',
+                'debug': '#94a3b8',
+                'unknown': '#64748b'
+            };
+            
+            const colors = labels.map(label => colorMap[label.toLowerCase()] || '#3b82f6');
+            
+            levelsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: '#1e293b',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#94a3b8',
+                                font: { size: 11 },
+                                padding: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPodsChart(podCounts) {
+            const ctx = document.getElementById('pods-chart').getContext('2d');
+            
+            if (podsChart) {
+                podsChart.destroy();
+            }
+            
+            const labels = Object.keys(podCounts).map(pod => {
+                // Shorten pod names for display
+                const parts = pod.split('-');
+                if (parts.length > 3) {
+                    return parts.slice(-3).join('-');
+                }
+                return pod.length > 25 ? pod.slice(0, 22) + '...' : pod;
+            });
+            const values = Object.values(podCounts);
+            
+            podsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Log Count',
+                        data: values,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: '#94a3b8',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTimelineChart(timeline) {
+            const ctx = document.getElementById('timeline-chart').getContext('2d');
+            
+            if (timelineChart) {
+                timelineChart.destroy();
+            }
+            
+            const labels = Object.keys(timeline).map(ts => {
+                // Format timestamp for display
+                try {
+                    const date = new Date(ts);
+                    return date.toLocaleString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit',
+                        hour12: false 
+                    });
+                } catch {
+                    return ts;
+                }
+            });
+            const values = Object.values(timeline);
+            
+            timelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Logs',
+                        data: values,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#334155' },
+                            ticks: { 
+                                color: '#94a3b8',
+                                maxRotation: 45,
+                                font: { size: 10 }
+                            }
+                        },
+                        y: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleDashboard() {
+            const chartsContainer = document.getElementById('charts-container');
+            const summaryStats = document.getElementById('summary-stats');
+            const toggleBtn = document.querySelector('.dashboard-toggle');
+            
+            dashboardVisible = !dashboardVisible;
+            
+            if (dashboardVisible) {
+                chartsContainer.style.display = 'grid';
+                summaryStats.style.display = 'grid';
+                toggleBtn.textContent = 'Hide Charts';
+            } else {
+                chartsContainer.style.display = 'none';
+                summaryStats.style.display = 'none';
+                toggleBtn.textContent = 'Show Charts';
             }
         }
 
