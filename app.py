@@ -255,7 +255,7 @@ def get_logs():
     
     # Sort parameters
     sort_by = request.args.get('sort_by', 'timestamp')
-    sort_order = request.args.get('sort_order', 'desc')
+    sort_order = request.args.get('sort_order', 'asc')
     
     # Filter logs
     filtered = filter_logs(parsed_logs, filters)

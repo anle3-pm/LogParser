@@ -1213,7 +1213,7 @@
                                 Level <span class="sort-indicator">↕</span>
                             </th>
                             <th data-sort="timestamp" onclick="toggleSort('timestamp')" class="sorted">
-                                Timestamp <span class="sort-indicator">↓</span>
+                                Timestamp <span class="sort-indicator">↑</span>
                             </th>
                             <th data-sort="message" onclick="toggleSort('message')">
                                 Message <span class="sort-indicator">↕</span>
@@ -1275,7 +1275,7 @@
         let selectedLevels = []; // Empty means "all"
         let availableLevels = [];
         let sortBy = 'timestamp';
-        let sortOrder = 'desc';
+        let sortOrder = 'asc';
         let currentLogs = []; // Store currently displayed logs
         let currentLogIndex = -1; // Index in currentLogs array
         
@@ -1725,7 +1725,7 @@
             document.getElementById('external-id-filter').value = 'all';
             // Reset sort to default
             sortBy = 'timestamp';
-            sortOrder = 'desc';
+            sortOrder = 'asc';
             updateSortIndicators();
             applyFilters();
         }
