@@ -1219,7 +1219,7 @@
         });
 
         function showUploadSection() {
-            // Reset state
+            // Reset state (will be repopulated on new upload)
             selectedLevels = [];
             availableLevels = [];
             sortBy = 'timestamp';
@@ -1306,13 +1306,15 @@
         function populateLevelFilter(levels) {
             const container = document.getElementById('level-options');
             container.innerHTML = levels.map(level => `
-                <div class="multi-select-option" onclick="toggleLevelOption('${level}', event)">
-                    <input type="checkbox" id="level-${level}" value="${level}" onchange="onLevelCheckboxChange('${level}')">
+                <div class="multi-select-option selected" onclick="toggleLevelOption('${level}', event)">
+                    <input type="checkbox" id="level-${level}" value="${level}" checked onchange="onLevelCheckboxChange('${level}')">
                     <label for="level-${level}">
                         <span class="level-badge level-${level}">${level}</span>
                     </label>
                 </div>
             `).join('');
+            // Select all levels by default
+            selectedLevels = [...levels];
             updateLevelDisplay();
         }
 
@@ -1602,11 +1604,11 @@
 
         function clearFilters() {
             document.getElementById('search-input').value = '';
-            // Clear level multi-select
-            selectedLevels = [];
+            // Select ALL levels (not clear)
+            selectedLevels = [...availableLevels];
             availableLevels.forEach(level => {
                 const checkbox = document.getElementById(`level-${level}`);
-                if (checkbox) checkbox.checked = false;
+                if (checkbox) checkbox.checked = true;
             });
             updateLevelDisplay();
             // Clear other filters
