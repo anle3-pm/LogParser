@@ -231,13 +231,45 @@ def get_logs():
     sort_field = sort_key_map.get(sort_by, 'log_time')
     reverse = sort_order == 'desc'
     
+    def parse_timestamp(ts):
+        """Parse various timestamp formats into a datetime for proper sorting."""
+        if not ts:
+            return None
+        try:
+            # ISO format: 2026-01-15T10:30:00Z or 2026-01-15T10:30:00.123456Z
+            if 'T' in ts:
+                # Remove timezone suffix and microseconds for parsing
+                clean_ts = ts.replace('Z', '').split('.')[0]
+                return datetime.strptime(clean_ts, '%Y-%m-%dT%H:%M:%S')
+            # Format: 01/15/2026 10:30:00 AM
+            elif '/' in ts:
+                try:
+                    return datetime.strptime(ts, '%m/%d/%Y %I:%M:%S %p')
+                except:
+                    try:
+                        return datetime.strptime(ts, '%m/%d/%Y %H:%M:%S')
+                    except:
+                        return None
+            # Format: 2026-01-15 10:30:00
+            elif '-' in ts and ' ' in ts:
+                return datetime.strptime(ts.split('.')[0], '%Y-%m-%d %H:%M:%S')
+        except:
+            pass
+        return None
+    
     # Handle sorting with fallback for empty values
     def get_sort_key(log):
         value = log.get(sort_field, '')
         if sort_field == 'log_time':
             # Fallback to timestamp if log_time is empty
             value = value or log.get('timestamp', '')
-        return value.lower() if isinstance(value, str) else value
+            # Parse timestamp for proper sorting
+            parsed = parse_timestamp(value)
+            if parsed:
+                return parsed
+            # If parsing fails, return minimum date so it sorts to the end
+            return datetime.min if not reverse else datetime.max
+        return (value or '').lower() if isinstance(value, str) else (value or '')
     
     filtered.sort(key=get_sort_key, reverse=reverse)
     
